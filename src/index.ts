@@ -1,11 +1,10 @@
-import dotenv from 'dotenv';
-dotenv.config();
+import { pinoLogger } from './config/logger';
+import { startExpressHttpServer } from './server/server';
 
-import { app } from './app';
-import { logger } from './config/logger';
+pinoLogger.info('🔥 Igniting application');
 
-const port = process.env.PORT || 3000;
+const port = Number(process.env.PORT) || 3000;
 
-app.listen(port, () => {
-  logger.info(`Server running on port ${port}`);
-});
+startExpressHttpServer(port, `💻 Server running - listening on port ${port}`);
+
+pinoLogger.info('🚀 Application successfully launched 🚀');

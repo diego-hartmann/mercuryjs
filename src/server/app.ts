@@ -1,27 +1,27 @@
 import express from 'express';
 import { securityMiddleware } from './middlewares/security.middleware';
 import { requestLoggerMiddleware } from './middlewares/request-logger.middleware';
+import routes from './routes';
 import { errorHandlerMiddleware } from './middlewares/error-handler.middleware';
-import { router as healthRouter } from './routes/health';
+import { HTTP_ERROR } from '../shared/errors/http-error.util';
 
 export const app = express();
 
-// body parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// security (helmet, cors, rate limit)
 app.use(securityMiddleware);
-
-// logging HTTP
 app.use(requestLoggerMiddleware);
 
-// routes
-app.use('/health', healthRouter);
-
-app.get('/', (_req, res) => {
-  res.json({ message: 'PH Node Service Template is running.' });
+app.get('/health', (_req, res) => {
+  res.status(200).json({ message: 'PH Node Service Template is running.' });
 });
 
-// global error handler
+// monta rotas (ex.: /api)
+app.use(routes);
+
+// 404 para rotas inexistentes (opcional mas recomendado)
+app.use((_req, _res, next) => next(HTTP_ERROR.notFound('Route not found')));
+
+// error handler no fim
 app.use(errorHandlerMiddleware);

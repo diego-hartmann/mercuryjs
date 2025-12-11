@@ -1,8 +1,8 @@
 import morgan from 'morgan';
-import { logger } from '../config/logger';
+import { pinoLogger } from '../../config/logger';
 
 export const requestLoggerMiddleware = morgan('tiny', {
   stream: {
-    write: (msg) => logger.info(msg.trim())
+    write: (msg) => pinoLogger.info(msg.trim())
   }
 });
