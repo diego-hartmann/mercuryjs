@@ -3,7 +3,7 @@ export default function serviceTemplate(
   kebabName: string,
   isDatabaseEntity: boolean = true
 ): string {
-  if (isDatabaseEntity) {
+  if (!isDatabaseEntity) {
     return `export class ${pascalName}Service {
       // TODO add logic here
     }

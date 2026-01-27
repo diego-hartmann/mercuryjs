@@ -6,25 +6,3 @@ generator client {
   provider = "prisma-client"
   output   = "./generated/prisma"
 }
-
-
-// #region -------------------------- CONSULTANT -------------------------------
-model Consultant {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  // TODO: add/change fields
-  interests String[]
-}
- // #endregion
-
-
-// #region -------------------------- USER -------------------------------
-model User {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  // TODO: add/change fields
-  cities    String[]
-}
- // #endregion

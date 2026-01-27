@@ -1,12 +1,17 @@
-export default function repositoryTemplate(pascalName: string, kebabName: string): string {
-  return `import type { ${pascalName} } from '../models/${kebabName}.models';
-import { ${pascalName}PrismaDataSource } from '../data-sources/${kebabName}.prisma';
-import { CrudRepository } from './base-classes/crud.repository';
+export default function repositoryTemplate(
+  pascalName: string,
+  kebabName: string
+): string {
+  return `import { getPrisma } from '../../../store/prisma-client';
+import type { ${pascalName} } from '../models/${kebabName}.models';
+import { PrismaCrudRepository } from './base-classes/prisma-crud.repository';
 
-export class ${pascalName}Repository extends CrudRepository<${pascalName}> {
+export class ${pascalName}Repository extends PrismaCrudRepository<${pascalName}> {
   constructor() {
-    super(new ${pascalName}PrismaDataSource())
+    super(getPrisma().${kebabName});
   }
+
+  // TODO Add custom methods here (e.g. findByEmail, search, etc)
 }
 `;
 }

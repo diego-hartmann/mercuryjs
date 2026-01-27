@@ -1,4 +1,16 @@
-export default function controllerTemplate(pascalName: string, kebabName: string): string {
+export default function controllerTemplate(
+  pascalName: string,
+  kebabName: string,
+  isDatabaseEntity: boolean
+): string {
+  if (!isDatabaseEntity) {
+    return `
+    import { ${pascalName}Service } from '../services/${kebabName}.service';
+    export class ${pascalName}Controller {
+      constructor(private readonly service = new ${pascalName}Service()) {}
+    }
+    `;
+  }
   return `import { Request, Response } from 'express';
 import { ${pascalName}Service } from '../services/${kebabName}.service';
 import {

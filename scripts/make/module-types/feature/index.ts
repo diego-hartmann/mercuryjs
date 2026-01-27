@@ -61,8 +61,8 @@ export default async function createFeature(nameInput: string, isEntityInDatabas
   writeFileIfNotExists(files.schema, schemaTemplate(pascal));
   writeFileIfNotExists(files.service, serviceTemplate(pascal, kebab, isEntityInDatabase));
   writeFileIfNotExists(files.serviceSpec, serviceSpecTemplate(pascal, kebab));
-  writeFileIfNotExists(files.controller, controllerTemplate(pascal, kebab));
-  writeFileIfNotExists(files.routes, routesTemplate(pascal, kebab, camel));
+  writeFileIfNotExists(files.controller, controllerTemplate(pascal, kebab, isEntityInDatabase));
+  writeFileIfNotExists(files.routes, routesTemplate(pascal, kebab, camel, pluralKebab));
   writeFileIfNotExists(files.routesSpec, routesSpecTemplate(kebab, camel, pluralKebab));
   writeFileIfNotExists(files.smokeTest, smokeTestTemplate(pascal, camel));
 

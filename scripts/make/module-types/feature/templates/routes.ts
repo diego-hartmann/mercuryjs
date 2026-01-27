@@ -1,45 +1,110 @@
 export default function routesTemplate(
   pascalName: string,
   kebabName: string,
-  camelName: string
+  camelName: string,
+  pluralKebab: string
 ): string {
-  return `import { Router } from 'express';
+  return `import { Router, type RequestHandler } from 'express';
+import { z, type ZodTypeAny } from 'zod';
 import { ${pascalName}Controller } from '../controllers/${kebabName}.controller';
+
 // validator
 import { validateZodMiddleware } from '../../server/middlewares/validate-zod.middleware';
+
 import {
-  Create${pascalName}BodySchema,
-  Update${pascalName}BodySchema,
-  ${pascalName}IdParamSchema
+  ${pascalName}Schema,
+  List${pascalName}RequestSchema,
+  Create${pascalName}RequestSchema,
+  Get${pascalName}ByIdRequestSchema,
+  Update${pascalName}RequestSchema,
+  Delete${pascalName}RequestSchema
 } from '../validations/${kebabName}.schema';
 
-export const ${camelName}Routes = Router();
+type HttpMethod = 'get' | 'post' | 'patch' | 'delete';
+
+export type ApiRoute = {
+  method: HttpMethod;
+  path: string; // relative to basePath
+  handler: RequestHandler;
+  requestSchema?: ZodTypeAny;
+  responses: Record<number, { description: string; schema?: ZodTypeAny }>;
+};
+
+export type ApiContract = {
+  basePath: string;
+  tag: string;
+  routes: ApiRoute[];
+};
+
 const controller = new ${pascalName}Controller();
 
-${camelName}Routes.get('/', controller.list);
+export const ${camelName}Contract: ApiContract = {
+  basePath: '/${pluralKebab}',
+  tag: '${pascalName}',
+  routes: [
+    {
+      method: 'get',
+      path: '/',
+      handler: controller.list,
+      requestSchema: List${pascalName}RequestSchema,
+      responses: {
+        200: { description: 'OK', schema: z.array(${pascalName}Schema) }
+      }
+    },
+    {
+      method: 'post',
+      path: '/',
+      handler: controller.create,
+      requestSchema: Create${pascalName}RequestSchema,
+      responses: {
+        201: { description: 'Created', schema: ${pascalName}Schema }
+      }
+    },
+    {
+      method: 'get',
+      path: '/:id',
+      handler: controller.getById,
+      requestSchema: Get${pascalName}ByIdRequestSchema,
+      responses: {
+        200: { description: 'OK', schema: ${pascalName}Schema },
+        404: { description: 'Not found' }
+      }
+    },
+    {
+      method: 'patch',
+      path: '/:id',
+      handler: controller.update,
+      requestSchema: Update${pascalName}RequestSchema,
+      responses: {
+        200: { description: 'OK', schema: ${pascalName}Schema },
+        404: { description: 'Not found' }
+      }
+    },
+    {
+      method: 'delete',
+      path: '/:id',
+      handler: controller.remove,
+      requestSchema: Delete${pascalName}RequestSchema,
+      responses: {
+        204: { description: 'No Content' },
+        404: { description: 'Not found' }
+      }
+    }
+  ]
+};
 
-${camelName}Routes.post(
-  '/',
-  validateZodMiddleware(Create${pascalName}BodySchema),
-  controller.create
-);
+export const ${camelName}Routes = Router();
 
-${camelName}Routes.get(
-  '/:id',
-  validateZodMiddleware(${pascalName}IdParamSchema),
-  controller.getById
-);
+(function createRoutes(){
+  // Single source of truth: contract -> router
+  ${camelName}Contract.routes.forEach((r) => {
+    if (r.requestSchema) {
+      ${camelName}Routes[r.method](r.path, validateZodMiddleware(r.requestSchema as any), r.handler);
+      return;
+    }
+    ${camelName}Routes[r.method](r.path, r.handler);
+  })
+})()
 
-${camelName}Routes.patch(
-  '/:id',
-  validateZodMiddleware(Update${pascalName}BodySchema),
-  controller.update
-);
-
-${camelName}Routes.delete(
-  '/:id',
-  validateZodMiddleware(${pascalName}IdParamSchema),
-  controller.remove
-);
 `;
 }
