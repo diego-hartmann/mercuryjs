@@ -26,7 +26,7 @@ export type ApiRoute = {
   method: HttpMethod;
   path: string; // relative to basePath
   handler: RequestHandler;
-  requestSchema?: ZodTypeAny;
+  requestSchema: ZodTypeAny; // always validate
   responses: Record<number, { description: string; schema?: ZodTypeAny }>;
 };
 
@@ -95,16 +95,13 @@ export const ${camelName}Contract: ApiContract = {
 
 export const ${camelName}Routes = Router();
 
-(function createRoutes(){
-  // Single source of truth: contract -> router
-  ${camelName}Contract.routes.forEach((r) => {
-    if (r.requestSchema) {
-      ${camelName}Routes[r.method](r.path, validateZodMiddleware(r.requestSchema as any), r.handler);
-      return;
-    }
-    ${camelName}Routes[r.method](r.path, r.handler);
-  })
-})()
-
+// Single source of truth: contract -> router
+${camelName}Contract.routes.forEach((r) => {
+  ${camelName}Routes[r.method](
+    r.path,
+    validateZodMiddleware(r.requestSchema as any),
+    r.handler
+  );
+});
 `;
 }

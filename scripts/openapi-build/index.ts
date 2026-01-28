@@ -41,24 +41,65 @@ function expressToOpenApiPath(p: string) {
   return p.replace(/:([A-Za-z0-9_]+)/g, '{$1}');
 }
 
+function zodObjectShape(schema: any) {
+  return schema?._def?.shape?.();
+}
+
+function unwrapOptional(t: any) {
+  return t?._def?.innerType ?? t;
+}
+
 function extractEnvelopeParts(schema: any): {
-  params?: any;
   query?: any;
   bodySchema?: any;
 } {
-  if (!schema || !schema._def) return {};
-  // z.object shape lives here
-  const shape = schema._def.shape?.();
+  const shape = zodObjectShape(schema);
   if (!shape) return {};
 
-  const params = shape.params;
   const query = shape.query;
   const body = shape.body;
 
-  // Body pode ser optional() ou z.object({})
   const bodySchema = body?._def?.innerType ?? body;
 
-  return { params, query, bodySchema };
+  return { query, bodySchema };
+}
+
+/**
+ * Universal: Zod query object -> OpenAPI query parameters with auto metadata
+ */
+function querySchemaToParameters(querySchema: any) {
+  const shape = zodObjectShape(querySchema);
+  if (!shape) return [];
+
+  return Object.entries(shape).map(([key, zodType]: any) => {
+    const base = unwrapOptional(zodType);
+    const schemaWithParam =
+      typeof base?.openapi === 'function'
+        ? base.openapi({ param: { name: key, in: 'query' } })
+        : base;
+
+    return {
+      name: key,
+      in: 'query',
+      required: false,
+      schema: schemaWithParam
+    };
+  });
+}
+
+/**
+ * Universal: path '/cars/{id}' -> OpenAPI path parameters
+ * (No need to rely on Zod params schema metadata)
+ */
+function pathToPathParameters(openapiPath: string) {
+  const names = Array.from(openapiPath.matchAll(/\{([A-Za-z0-9_]+)\}/g)).map((m) => m[1]);
+
+  return names.map((name) => ({
+    name,
+    in: 'path',
+    required: true,
+    schema: z.string().openapi({ param: { name, in: 'path' } })
+  }));
 }
 
 async function loadContracts(): Promise<ApiContract[]> {
@@ -70,7 +111,6 @@ async function loadContracts(): Promise<ApiContract[]> {
   for (const file of files) {
     const mod = await import(pathToFileURL(file).href);
 
-    // procura qualquer export que “pareça” um contract
     for (const value of Object.values(mod)) {
       if (isContract(value)) contracts.push(value);
     }
@@ -88,18 +128,19 @@ async function main() {
       const fullPath = `${c.basePath}${r.path === '/' ? '' : r.path}`;
       const openapiPath = expressToOpenApiPath(fullPath);
 
-      const { params, query, bodySchema } = extractEnvelopeParts(r.requestSchema);
+      const { query, bodySchema } = extractEnvelopeParts(r.requestSchema);
 
       const request: any = {};
-      if (params) request.params = params;
-      if (query) request.query = query;
       if (bodySchema) {
         request.body = {
-          content: {
-            'application/json': { schema: bodySchema }
-          }
+          content: { 'application/json': { schema: bodySchema } }
         };
       }
+
+      const queryParameters = query ? querySchemaToParameters(query) : [];
+      const pathParameters = pathToPathParameters(openapiPath);
+
+      const parameters = [...pathParameters, ...queryParameters];
 
       const responses: any = {};
       for (const [statusStr, resp] of Object.entries(r.responses || {})) {
@@ -119,6 +160,7 @@ async function main() {
         path: openapiPath,
         tags: [c.tag],
         request: Object.keys(request).length ? request : undefined,
+        parameters: parameters.length ? parameters : undefined,
         responses
       });
     }
@@ -132,7 +174,7 @@ async function main() {
 
   const out = path.resolve(process.cwd(), 'openapi.json');
   fs.writeFileSync(out, JSON.stringify(doc, null, 2), 'utf-8');
-  console.log(`✅ OpenAPI written to ${out}`);
+  console.log(`🦎  OpenAPI written to openapi.json`);
 }
 
 main().catch((err) => {

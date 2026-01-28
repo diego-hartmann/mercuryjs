@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "make": "tsx scripts/make",
-    "prisma:schema": "cat prisma/base.prisma prisma/models/*.prisma > prisma/schema.prisma",
+    "prisma:schema": "cat prisma/base.prisma prisma/models/*.prisma > prisma/schema.prisma && npm run prisma:client",
     "prisma:client": "rm -rf prisma/generated && npx prisma generate",
     "prisma:migrate": "prisma migrate dev --name init",
     "prisma:reset:dev": "npx prisma migrate reset",
